@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Seeder;
 use App\Imports\KadastrImport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class KadastrSeeder extends Seeder
 {

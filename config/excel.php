@@ -3,7 +3,6 @@
 use Maatwebsite\Excel\Excel;
 
 return [
-
     'exports' => [
 
         /*
