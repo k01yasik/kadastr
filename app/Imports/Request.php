@@ -3,37 +3,57 @@
 namespace App\Imports;
 
 use \GuzzleHttp\Client;
+use GuzzleHttp\Exception\GuzzleException;
 
-class Request 
+class Request
 {
-    private $client;
+    private Client $client;
+    private StructureInterface $structure;
+    private string $macro;
+    private string $region;
+    private string $url;
 
-    public function __construct(Client $client)
+    public function __construct(Client $client, StructureInterface $structure)
     {
         $this->client = $client;
+        $this->structure = $structure;
     }
 
-    public function makeRequest(StructureInterface $structure)
+    public function init(string $macro, string $region)
     {
-        $query = $this->makeQuery($structure);        
+        $this->macro = $macro;
+        $this->region = $region;
+    }
 
-        $response = $this->client->request('GET', 'http://rosreestr.ru/api/online/address/fir_objects', [
-            'query' => $query,
-            'delay' => $structure->getDelay()
-        ]);
+    public function setUrl(string $url)
+    {
+        $this->url = $url;
+    }
+
+    public function makeRequest()
+    {
+        $query = $this->makeQuery();
+
+        try {
+            $response = $this->client->request('GET', $this->url, [
+                'query' => $query,
+                'delay' => $this->structure->getDelay()
+            ]);
+        } catch (GuzzleException $e) {
+        }
 
         return $response;
     }
 
-    private function makeQuery(StructureInterface $structure)
+    private function makeQuery()
     {
         $query = [
-            'macroRegionId' => '158000000000',
-            'regionId' => '158229000000',
+            'macroRegionId' => $this->macro,
+            'regionId' => $this->region,
         ];
 
-        $settlementId = $structure->getSettlementId();
-        $street = $structure->getStreet();
+        $settlementId = $this->structure->getSettlementId();
+        $street = $this->structure->getStreet();
 
         if ($settlementId) {
             $query['settlementId'] = $settlementId;
@@ -43,8 +63,8 @@ class Request
             $query['street'] = $street;
         }
 
-        $query['house'] = $structure->getHouse();
-        $query['apartment'] = $structure->getApartment();
+        $query['house'] = $this->structure->getHouse();
+        $query['apartment'] = $this->structure->getApartment();
 
         return $query;
     }

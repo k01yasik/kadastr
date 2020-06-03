@@ -5,8 +5,8 @@ namespace App\Imports;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Exception;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
-use App\Imports\Request;
 use \GuzzleHttp\Client;
 
 class KadastrImport implements ToCollection
@@ -15,7 +15,7 @@ class KadastrImport implements ToCollection
     {
         $client = new Client();
 
-        $request = new Request($client);
+
 
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
@@ -24,17 +24,28 @@ class KadastrImport implements ToCollection
 
         foreach ($rows as $row)
         {
-            if (strval($row[5]) === 'Приозерный') {
-                $response = $request->makeRequest(new VillageStructure(strval($row[7]), strval($row[8]), '158229840034'));
-            } else if (strval($row[5]) === 'Крулихино') {
-                $response = $request->makeRequest(new VillageStructure(strval($row[7]), strval($row[8]), '158229805008'));
-            } else if (strval($row[5]) === 'Духново') {
-                $response = $request->makeRequest(new VillageStructure(strval($row[7]), strval($row[8]), '158229815001'));
-            } else if (strval($row[5]) === 'Бездедово') {
-                $response = $request->makeRequest(new VillageStructure(strval($row[7]), strval($row[8]), '158229835002'));                
+            $col7 = strval($row[7]);
+            $col8 = strval($row[8]);
+            $col5 = strval($row[5]);
+            $col9 = strval($row[9]);
+            $col10 = strval($row[10]);
+
+            if ($col5 === 'Приозерный') {
+                $structure = new VillageStructure($col7, $col8, '158229840034');
+            } else if ($col5 === 'Крулихино') {
+                $structure = new VillageStructure($col7, $col8, '158229805008');
+            } else if ($col5 === 'Духново') {
+                $structure = new VillageStructure($col7, $col8, '158229815001');
+            } else if ($col5 === 'Бездедово') {
+                $structure = new VillageStructure($col7, $col8, '158229835002');
             } else {
-                $response = $request->makeRequest(new TownStructure(strval($row[9]), strval($row[10]), strval($row[7])));                
-            }            
+                $structure = new TownStructure($col9, $col10, $col7);
+            }
+
+            $request = new Request($client, $structure);
+            $request->init('158000000000', '158229000000');
+            $request->setUrl('http://rosreestr.ru/api/online/address/fir_objects');
+            $response = $request->makeRequest();
 
             $r = json_decode($response->getBody()->getContents(), true);
 
@@ -48,6 +59,10 @@ class KadastrImport implements ToCollection
         }
 
         $writer = new Xlsx($spreadsheet);
-        $writer->save('result.xlsx');
+
+        try {
+            $writer->save('result.xlsx');
+        } catch (Exception $e) {
+        }
     }
 }
